@@ -1,1 +1,30 @@
 .backend.tf
+
+# Local Terraform state
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Terraform plan outputs
+*.plan
+
+# Sensitive override files
+terraform.tfvars
+*.tfvars
+*.tfvars.json
+
+# Local backend config (never commit secrets)
+*.auto.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# CLI config
+.terraform/
+.terraform.lock.hcl
+
+# OS-specific files
+.DS_Store
+Thumbs.db
