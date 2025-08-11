@@ -1,4 +1,4 @@
-# Sprint 0: Remote Backend Setup
+# Sprint 0
 
 ## Why Remote State is Non-Negotiable
 Problems with local state in teams:
@@ -35,13 +35,22 @@ Problems with local state in teams:
 | **DynamoDB** | State locking to prevent concurrent changes |
 | **Encryption** | Meets GDPR/CCPA compliance |
 
+
+## DynamoDB vs S3 Native Locking
+
+| Aspect | DynamoDB | S3 Native | Recommendation |
+|--------|----------|-----------|----------------|
+| **Maturity** | Production-ready (2017+) | Preview/Limited | Use DynamoDB |
+| **Cost** | ~$0.25/month | Lower | DynamoDB for reliability |
+| **Setup** | Requires separate table | Built-in | DynamoDB worth extra setup |
+| **Monitoring** | CloudWatch metrics | Limited | DynamoDB for observability |
 ---
 
 ## Cost Analysis
 - **S3**: $0.023/month (first 50 TB)
 - **DynamoDB**: ~$1.25/month (5 RCU/WCU)
 
-## 1. State Management Architecture
+## State Management Architecture
 
 ### Why Two-Phase Bootstrap?
 To avoid the "chicken-and-egg" problem of Terraform managing its own state.
@@ -66,3 +75,57 @@ graph TD
     B --> C[Creates prod-tfstate-dog-cat]
     C --> D[All other projects use prod-tfstate-*]
     D --> E[bootstrap/ is archived] 
+
+# Sprint 1
+## Networking
+
+### Why Multi-AZ (3 subnets)?
+- Survives single AZ failure (AWS SLA requirement)
+- Required for RDS Multi-AZ and ASG high availability
+- Cost impact: <$5/month difference
+
+### Why Single NAT Gateway?
+- Cost: $36/month vs $108/month for 3 NATs
+- Sufficient for most workloads (< 5 Gbps)
+- Can upgrade to multi-NAT if needed
+- **Trade-off**: AZ failure breaks internet for all private subnets
+
+### Why VPC Endpoint for S3?
+- Avoids $0.01/GB NAT egress fees
+- Blocks data exfiltration via public internet
+- Required for HIPAA compliance (AWS Artifact)
+
+### Why Default DENY Security Group?
+- Principle of least privilege (PCI DSS 1.2.1)
+- Prevents "accidental public" disasters
+- Forces explicit security rules (no hidden open ports)
+## VPC Flow Logs Design
+
+### Why KMS Encryption?
+- Required for HIPAA, PCI DSS, and GDPR compliance
+- Prevents unauthorized access to log data
+- Enables auditability of key usage
+
+### Why 365-Day Retention?
+- Meets FINRA 451 record retention requirements
+- Allows long-term traffic pattern analysis
+- Cost impact: <$5/month for typical VPC
+
+### Why Least-Privilege IAM?
+- Principle of least privilege (NIST 800-53)
+- Limits blast radius if credentials are compromised
+- Required for SOC 2 Type II audits
+
+### 🔐 **AWS-Managed vs Customer-Managed KMS**
+| Feature / Aspect          | **AWS-Managed KMS Key**                                                   | **Customer-Managed KMS Key (CMK)**                                                           |
+| ------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Ownership**             | Created, and fully managed by AWS                                  | Created, owned, and managed by you                                                           |
+| **Key Policy Control**    | No direct access to the key policy; tied to service permissions           | Full control over key policy (who can use, encrypt, decrypt, from where)                     |
+| **Access Management**     | Controlled via service-level IAM permissions                              | Controlled via **both** IAM permissions **and** key policy                                   |
+| **Rotation**              | Automatic rotation every 1 year by AWS                                    | Optional automatic annual rotation or manual rotation on-demand                              |
+| **Auditability**          | Limited — usage tracked within the service but not directly in CloudTrail | Full usage audit in AWS CloudTrail (every encrypt/decrypt logged)                            |
+| **Cross-Account Use**     | Not supported                                                             | Supported — can grant permissions to other AWS accounts                                      |
+| **Deletion / Revocation** | Cannot delete AWS-managed keys; tied to the service lifecycle             | Can disable, schedule deletion, or revoke access instantly                                   |
+| **Cost**                  | No monthly charge (only standard service usage costs)                     | \$1/month per key + API request costs                                                        |
+| **Compliance**            | May not meet strict regulatory frameworks (PCI, HIPAA, FedRAMP, etc.)     | Meets strict compliance by giving you control over encryption and access                     |
+| **Use Cases**             | General workloads, dev/test, low-sensitivity data                         | Regulated workloads, sensitive data, need for granular access control, cross-account sharing |
