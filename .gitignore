@@ -28,5 +28,14 @@ override.tf.json
 # OS-specific files
 .DS_Store
 Thumbs.db
+# Ignore AWS CLI examples/dist files
 modules/ec2/examples/basic/aws/dist/
-*.zone                    # ignore any local zone/environment files
+modules/ec2/examples/basic/aws/*.so
+modules/ec2/examples/basic/aws/*.dist-info/
+modules/ec2/examples/basic/aws/*.rst
+
+*.zone      
+# Logs, backups, temporary files
+*.log
+*.bak
+*.tmp              
