@@ -30,8 +30,10 @@ override.tf.json
 Thumbs.db
 # Ignore AWS CLI examples/dist files
 modules/ec2/examples/basic/aws/
-
-*.zone      
+*.Zone
+*.tf:Zone.Identifier
+*.hcl:Zone.Identifier
+  
 # Logs, backups, temporary files
 *.log
 *.bak
