@@ -164,49 +164,63 @@ Run:
 
 ---
 ## 6. Troubleshooting
-1. SSM Agent Not Connecting
 
-Symptoms: Cannot connect via Session Manager; agent offline.
+### 1. SSM Agent Not Connecting
+**Symptoms:** Cannot connect via Session Manager; agent shows as offline.  
+**Root Cause:** Missing IAM policies or no route to SSM endpoints.  
+**Fix:**  
+- Attach the `AmazonSSMManagedInstanceCore` policy to the instance IAM role.  
+- Ensure the instance has either internet access or a VPC endpoint configured for SSM.
 
-Root Cause: Missing IAM policies or no route to SSM endpoints.
+---
 
-Fix: Attach AmazonSSMManagedInstanceCore policy and provide either internet access or VPC endpoint for SSM.
+### 2. Auto Scaling Group (ASG) Keeps Terminating Instances
+**Symptoms:** EC2 instances launch → immediately terminate → repeat.  
+**Root Cause:** health check failed.  
+**Fix:**  
+- Validate that services are ready.
 
-2. ASG Keeps Terminating Instances
+---
 
-Symptoms: EC2 instances launch → immediately terminate → repeat.
+### 3. ALB Target Group Fails to Register Instances
+**Symptoms:** Instances show as unhealthy in the ALB.  
+**Root Cause:**  
+- Security Group blocks traffic from ALB.  
+- User data or service bootstrap incomplete.  
+**Fix:**  
+- Allow inbound traffic from ALB security group.  
+- Ensure the service is listening on the expected port.  
+- Add bootstrap delays or retries if service startup takes time.
 
-Root Cause: Incorrect health check type or grace period too short.
+---
 
-Fix: Set health_check_type = "ELB" (with ALB) or "EC2", and health_check_grace_period = 300. Validate service readiness.
+### 4. Unexpected IAM Policy Deletion / Terraform Overwrites
+**Symptoms:** Policies get deleted or overwritten unexpectedly.  
+**Root Cause:**  
+- Terraform-managed resource conflicts.  
+- Partial updates (e.g., VPC-only changes) trigger dependent resource changes.  
+**Fix:**  
+- Reattach policies manually if needed.  
+- Use targeted `plan`/`apply` for partial updates.
 
-3. ALB Target Group Fails to Register Instances
+---
 
-Symptoms: Instances unhealthy in ALB.
+### 5. User Data Fails to Bootstrap
+**Symptoms:** Packages, agents, or scripts not installed on launch.  
+**Root Cause:**  
+- Script execution errors.  
+- AWS S3 buckets or endpoints inaccessible during bootstrap.  
+**Fix:**  
+- Validate bucket policies and connectivity.  
 
-Root Cause: SG blocks ALB traffic or user data not completed.
+---
 
-Fix: Allow inbound traffic from ALB SG, ensure services are listening on expected port, add bootstrap delays if necessary.
+### 6. VPC-Only Changes Trigger Unintended Updates
+**Symptoms:** Terraform applies unrelated changes or deletes resources unexpectedly.  
+**Fix:**  
+- Use targeted plan/apply with `-target=<resource>` to isolate changes.  
+- Carefully review the Terraform plan before applying.
 
-4. Unexpected IAM Policy Deletion / Terraform Overwrites
-
-Symptoms: Policies deleted/overwritten.
-
-Root Cause: Terraform managed resource conflicts or partial VPC-only updates.
-
-Fix: reattach Policies
-
-5. User Data Fails to Bootstrap
-
-Symptoms: Packages/agents not installed.
-
-Root Cause: Script execution issues as aws buckets weren't accessible.
-
-6. VPC-only Changes Trigger Unintended Updates
-
-Symptoms: Terraform applies unrelated changes or deletes resources.
-
-Fix: Use targeted plan/apply (-target=<resource>), apply in small batches, review plan carefully.
 ---
 
 ## 7. What’s Missing (Future Work)
@@ -238,4 +252,5 @@ Fix: Use targeted plan/apply (-target=<resource>), apply in small batches, revie
     
 - Add **CI/CD pipeline** to deploy infrastructure automatically.
     
+
 - Over time, consider **moving from EC2 → ECS/EKS** for containerized workloads.
