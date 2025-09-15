@@ -28,5 +28,5 @@ override.tf.json
 # OS-specific files
 .DS_Store
 Thumbs.db
-
+modules/ec2/examples/basic/aws/dist/
 *.zone                    # ignore any local zone/environment files
