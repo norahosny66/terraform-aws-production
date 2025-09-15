@@ -95,7 +95,7 @@ resource "aws_nat_gateway" "main" {
   tags = merge(var.tags, { Name = "${var.name}-nat-${count.index + 1}" })
   
   lifecycle {
-    prevent_destroy = true  # 🔒 Critical: Never delete by accident
+  #  prevent_destroy = true  # 🔒 Critical: Never delete by accident
   }
 }
 
@@ -130,16 +130,22 @@ resource "aws_vpc_endpoint" "s3" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Deny"
+        Effect    = "Allow"
         Principal = "*"
-        Action = ["s3:*"]
-        Resource = ["*"]
+        Action    = ["s3:*"]
+        Resource = [
+          "arn:aws:s3:::al2023-repos-*",
+          "arn:aws:s3:::al2023-repos-*/*",
+          "arn:aws:s3:::amazonlinux.*",
+          "arn:aws:s3:::amazonlinux.*/*"
+        ]
         Condition = {
-          Bool = { "aws:SecureTransport" = "false" }
+          Bool = { "aws:SecureTransport" = "true" }
         }
       }
     ]
   })
+
 }
 
 # 11. Default Security Group (DENY ALL posture)

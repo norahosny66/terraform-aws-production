@@ -62,7 +62,7 @@ resource "aws_cloudwatch_log_group" "vpc_flow" {
   tags              = merge(var.tags, { "Name" = "${var.name}-vpc-flow-logs" })
   
   lifecycle {
-    prevent_destroy = true
+   # prevent_destroy = true
   }
 }
 
